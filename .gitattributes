@@ -1,0 +1,6 @@
+# 改行コードを固定する（VBA も PowerShell も Windows 側は CRLF）
+* text=auto eol=lf
+*.bas text eol=crlf
+*.cls text eol=crlf
+*.ps1 text eol=crlf
+*.md  text eol=lf
