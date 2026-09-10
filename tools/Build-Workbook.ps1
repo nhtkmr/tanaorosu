@@ -151,27 +151,28 @@ try {
         @(6,  'ホーム（工場マップ）のノードID', 'MAP-001', '［ホーム］ボタンで表示する項目'),
         @(7,  'ポインター既定サイズ 横(0-1)',   0.08,      '新規ポインターの初期の大きさ'),
         @(8,  'ポインター既定サイズ 縦(0-1)',   0.06,      ''),
-        @(9,  '現在表示中のノードID',           'MAP-001', '（自動で更新されます）'),
-        @(10, '表示履歴',                       '',        '（自動で更新されます。［戻る］が使います）'),
-        @(11, '編集モード(1=ON)',               '0',       '（自動で更新されます）')
+        @(9,  'ポインターの塗りの薄さ(0-1)',    0.85,      '大きいほど薄い。0=ベタ塗り、0.9=ほぼ透明'),
+        @(10, '現在表示中のノードID',           'MAP-001', '（自動で更新されます）'),
+        @(11, '表示履歴',                       '',        '（自動で更新されます。［戻る］が使います）'),
+        @(12, '編集モード(1=ON)',               '0',       '（自動で更新されます）')
     )
     foreach ($c in $cfg) {
         Set-Cell $ws ([int]$c[0]) 1 $c[1]
         Set-Cell $ws ([int]$c[0]) 2 $c[2]
         Set-Cell $ws ([int]$c[0]) 3 $c[3]
     }
-    $ws.Range('A3:A11').Font.Bold = $true
-    $ws.Range('B3:B11').Interior.Color = (RGBv 255 251 230)
-    $ws.Range('B3:B11').Borders.LineStyle = $xlContinuous
-    $ws.Range('B3:B11').Borders.Color = $CLR_FRAME
-    $ws.Range('C3:C11').Font.Color = $CLR_MUTED
-    $ws.Range('A13').Value2 = '※ 灰色の説明どおりに使ってください。B9〜B11 はツールが自動で書き換えます。'
-    $ws.Range('A13').Font.Color = $CLR_MUTED
+    $ws.Range('A3:A12').Font.Bold = $true
+    $ws.Range('B3:B12').Interior.Color = (RGBv 255 251 230)
+    $ws.Range('B3:B12').Borders.LineStyle = $xlContinuous
+    $ws.Range('B3:B12').Borders.Color = $CLR_FRAME
+    $ws.Range('C3:C12').Font.Color = $CLR_MUTED
+    $ws.Range('A14').Value2 = '※ 灰色の説明どおりに使ってください。B10〜B12 はツールが自動で書き換えます。'
+    $ws.Range('A14').Font.Color = $CLR_MUTED
 
     $names = @{
         'cfgRoot' = '$B$3'; 'cfgImgDir' = '$B$4'; 'cfgPdfDir' = '$B$5'; 'cfgHome' = '$B$6'
-        'cfgHsW' = '$B$7'; 'cfgHsH' = '$B$8'; 'cfgCurrent' = '$B$9'
-        'cfgHistory' = '$B$10'; 'cfgEdit' = '$B$11'
+        'cfgHsW' = '$B$7'; 'cfgHsH' = '$B$8'; 'cfgHsAlpha' = '$B$9'
+        'cfgCurrent' = '$B$10'; 'cfgHistory' = '$B$11'; 'cfgEdit' = '$B$12'
     }
     foreach ($k in $names.Keys) { $wb.Names.Add($k, "=設定!$($names[$k])") | Out-Null }
 

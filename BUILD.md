@@ -100,10 +100,11 @@ src\*.bas / *.cls  ─┐
 | 情報欄の項目を増やす | `Build-Workbook.ps1` の `$labels` ＋ `M_View.bas` の `IR_*` 定数と `FillInfo` |
 | ノード表に列を足す | `M_Data.bas` の `NC_*` と `NC_LAST` ＋ `Build-Workbook.ps1` の `$nhdr` と列幅 |
 | 画像枠の大きさ | `M_View.bas` の `FRAME_ADDR` ＋ `Build-Workbook.ps1` のビューシートの列幅・行高 |
-| ポインターの色 | `M_Data.bas` の `KindColor` |
+| ポインターの色 | `M_Data.bas` の `KindColor`（ラベル文字はそれを暗くした `Darken`） |
+| ポインターの塗りの薄さ | **コード修正不要**。［設定］シートの「ポインターの塗りの薄さ(0-1)」。既定 0.85（大きいほど薄い） |
 | 種別（マップ／設備…）を増やす | `M_Data.bas` の `KindPrefix` と `KindColor` ＋ `Build-Workbook.ps1` の入力規則 2 か所（ノード列 B・登録 B3） |
 | サンプル台帳の内容 | `Build-Workbook.ps1` の `$nodes` / `$links` |
-| ホーム・フォルダ名・既定サイズ | **コード修正不要**。ブックの［設定］シートで変えられます |
+| ホーム・フォルダ名・既定サイズ・塗りの薄さ | **コード修正不要**。ブックの［設定］シートで変えられます |
 
 直したら `.\tools\Update-Workbook.ps1`（台帳が残る）で反映します。
 
