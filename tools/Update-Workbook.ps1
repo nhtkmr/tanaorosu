@@ -34,7 +34,9 @@ function New-Excel {
 # ---------- 1. 今の台帳を読み出す ----------
 Write-Host '今のブックから台帳を読み出しています...'
 $xl = New-Excel
-$nodes = @(); $links = @(); $cfg = @()
+$nodes = @(); $links = @(); $cfg = @{}
+# 設定は行番号ではなく定義名でやりとりする（設定シートの行が増減しても壊れない）
+$CfgKeys = @('cfgRoot', 'cfgImgDir', 'cfgPdfDir', 'cfgHome', 'cfgHsW', 'cfgHsH', 'cfgHsAlpha')
 try {
     $wb = $xl.Workbooks.Open($Out)
     foreach ($t in @(@('ノード', 'tblNode'), @('リンク', 'tblLink'))) {
@@ -54,8 +56,9 @@ try {
         }
         if ($t[1] -eq 'tblNode') { $nodes = $rows } else { $links = $rows }
     }
-    $wsC = $wb.Sheets.Item('設定')
-    for ($r = 3; $r -le 11; $r++) { $cfg += $wsC.Cells.Item($r, 2).Value2 }
+    foreach ($k in $CfgKeys) {
+        try { $cfg[$k] = $wb.Names.Item($k).RefersToRange.Value2 } catch { $cfg[$k] = $null }
+    }
 }
 finally {
     try { $wb.Close($false) } catch { }
@@ -101,19 +104,19 @@ try {
     Write-Table $wb.Sheets.Item('ノード') $wb.Sheets.Item('ノード').ListObjects.Item('tblNode') $nodes
     Write-Table $wb.Sheets.Item('リンク') $wb.Sheets.Item('リンク').ListObjects.Item('tblLink') $links
 
-    # 設定は運用値（ルート・フォルダ名・ホーム・既定サイズ）だけ戻す
-    $wsC = $wb.Sheets.Item('設定')
-    for ($r = 3; $r -le 8; $r++) {
-        $v = $cfg[$r - 3]
+    # 設定は運用値（ルート・フォルダ名・ホーム・既定サイズ・塗りの薄さ）だけ戻す
+    foreach ($k in $CfgKeys) {
+        $v = $cfg[$k]
         if ($null -ne $v -and "$v" -ne '') {
-            if ($v -is [double] -or $v -is [int]) { $wsC.Cells.Item($r, 2).Value2 = [double]$v }
-            else { $wsC.Cells.Item($r, 2).Value2 = [string]$v }
+            $c = $wb.Names.Item($k).RefersToRange
+            if ($v -is [double] -or $v -is [int]) { $c.Value2 = [double]$v }
+            else { $c.Value2 = [string]$v }
         }
     }
     # 表示状態はリセット
-    $wsC.Cells.Item(9, 2).Value2 = [string]$wsC.Cells.Item(6, 2).Value2   # 現在 = ホーム
-    $wsC.Cells.Item(10, 2).ClearContents() | Out-Null                      # 履歴
-    $wsC.Cells.Item(11, 2).Value2 = '0'                                    # 編集モード
+    $wb.Names.Item('cfgCurrent').RefersToRange.Value2 = [string]$wb.Names.Item('cfgHome').RefersToRange.Value2
+    $wb.Names.Item('cfgHistory').RefersToRange.ClearContents() | Out-Null
+    $wb.Names.Item('cfgEdit').RefersToRange.Value2 = '0'
 
     $wb.Save()
     $wb.Close($false)

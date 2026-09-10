@@ -299,6 +299,13 @@ Public Function KindColor(ByVal kind As String) As Long
     End Select
 End Function
 
+' 種別色を暗くした色（薄い塗りの上に置く文字用）
+Public Function Darken(ByVal clr As Long, ByVal f As Double) As Long
+    Darken = RGB(Int((clr And &HFF) * f), _
+                 Int(((clr \ &H100&) And &HFF) * f), _
+                 Int(((clr \ &H10000) And &HFF) * f))
+End Function
+
 Public Function IsPartKind(ByVal kind As String) As Boolean
     IsPartKind = (kind = "購入部品" Or kind = "部品図面")
 End Function

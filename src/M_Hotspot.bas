@@ -81,7 +81,7 @@ Private Sub StyleHotspot(ByVal sh As Shape, ByVal nm As String, ByVal lbl As Str
     sh.Name = nm
     sh.Placement = xlFreeFloating
     sh.Fill.ForeColor.RGB = clr
-    sh.Fill.Transparency = 0.6
+    sh.Fill.Transparency = Clamp(CfgNum("cfgHsAlpha", 0.85), 0#, 0.95)
     sh.Line.ForeColor.RGB = clr
     sh.Line.Weight = 1.75
 
@@ -93,7 +93,7 @@ Private Sub StyleHotspot(ByVal sh As Shape, ByVal nm As String, ByVal lbl As Str
             .Text = lbl
             .Font.Size = 11
             .Font.Bold = msoTrue
-            .Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
+            .Font.Fill.ForeColor.RGB = Darken(clr, 0.7)
             .ParagraphFormat.Alignment = msoAlignCenter
         End With
     End With
@@ -198,8 +198,8 @@ Public Sub PlaceHotspotForLink(ByVal linkId As String)
         Exit Sub
     End If
 
-    w = NumOf(ThisWorkbook.Names("cfgHsW").RefersToRange, 0.08)
-    h = NumOf(ThisWorkbook.Names("cfgHsH").RefersToRange, 0.06)
+    w = CfgNum("cfgHsW", 0.08)
+    h = CfgNum("cfgHsH", 0.06)
     If w <= 0 Then w = 0.08
     If h <= 0 Then h = 0.06
     ' 続けて追加したときに重ならないよう少しずらす
@@ -344,6 +344,15 @@ Public Function NumOf(ByVal c As Range, ByVal dflt As Double) As Double
     Exit Function
 EH:
     NumOf = dflt
+End Function
+
+' 名前定義の設定値を数値で読む（名前が無い旧ブックでも既定値に落ちる）
+Public Function CfgNum(ByVal nm As String, ByVal dflt As Double) As Double
+    On Error GoTo EH
+    CfgNum = NumOf(ThisWorkbook.Names(nm).RefersToRange, dflt)
+    Exit Function
+EH:
+    CfgNum = dflt
 End Function
 
 Public Function Clamp(ByVal v As Double, ByVal lo As Double, ByVal hi As Double) As Double
