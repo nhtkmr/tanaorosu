@@ -172,11 +172,13 @@ Public Function AddChildLink(ByVal parentId As String, ByVal childId As String) 
 End Function
 
 ' 既存の項目を、いま表示している項目の子として追加する
+' 既に子になっている項目も追加できる（同じ部品が図面の複数箇所にあるとき、
+' 場所ごとにポインターを置ける）。リンクは 1 行増え、ポインターも 1 つ増える。
 Public Sub LinkExistingChild()
     Dim parentId As String, childId As String, linkId As String
     Dim q As String, msg As String, sel As String, s As String
     Dim lo As ListObject, wn As Worksheet, r As Long
-    Dim ids As Collection, dup As Long, over As Long, i As Long, n As Long
+    Dim ids As Collection, over As Long, i As Long, n As Long, cnt As Long
 
     parentId = GetCfg("cfgCurrent")
     If Not NodeExists(parentId) Then
@@ -196,9 +198,7 @@ Public Sub LinkExistingChild()
         s = Trim$(CStr(wn.Cells(r, NC_ID).Value))
         If Len(s) > 0 And StrComp(s, parentId, vbTextCompare) <> 0 Then
             If RowMatches(wn, r, q) Then
-                If IsAlreadyChild(parentId, s) Then
-                    dup = dup + 1
-                ElseIf ids.Count < 20 Then
+                If ids.Count < 20 Then
                     ids.Add s
                 Else
                     over = over + 1
@@ -208,9 +208,7 @@ Public Sub LinkExistingChild()
     Next r
 
     If ids.Count = 0 Then
-        msg = "「" & q & "」に一致する項目が見つかりませんでした。"
-        If dup > 0 Then msg = msg & vbCrLf & "（" & dup & " 件は既にこの項目の子です）"
-        MsgBox msg, vbInformation, "既存を子に追加"
+        MsgBox "「" & q & "」に一致する項目が見つかりませんでした。", vbInformation, "既存を子に追加"
         Exit Sub
     End If
 
@@ -219,9 +217,11 @@ Public Sub LinkExistingChild()
     Else
         msg = "子として追加する項目を番号で選んでください。" & vbCrLf & vbCrLf
         For i = 1 To ids.Count
-            msg = msg & i & " : " & CandidateLabel(CStr(ids(i))) & vbCrLf
+            msg = msg & i & " : " & CandidateLabel(CStr(ids(i)))
+            cnt = ChildLinkCount(parentId, CStr(ids(i)))
+            If cnt > 0 Then msg = msg & "  ※既に子（" & cnt & " 箇所）"
+            msg = msg & vbCrLf
         Next i
-        If dup > 0 Then msg = msg & vbCrLf & "（" & dup & " 件は既に子のため除外）"
         If over > 0 Then msg = msg & vbCrLf & "（他 " & over & " 件。絞り込むと出ます）"
         sel = InputBox(msg, "既存を子に追加", "1")
         If Len(Trim$(sel)) = 0 Then Exit Sub
@@ -230,10 +230,16 @@ Public Sub LinkExistingChild()
         childId = CStr(ids(n))
     End If
 
-    If MsgBox("「" & NodeName(parentId) & "」の子として" & vbCrLf & _
-              "「" & NodeName(childId) & "」（" & childId & "）を追加します。" & vbCrLf & vbCrLf & _
-              "※ 項目は増えません。参照が 1 つ増えるだけです。", _
-              vbOKCancel + vbQuestion, "既存を子に追加") <> vbOK Then Exit Sub
+    cnt = ChildLinkCount(parentId, childId)
+    msg = "「" & NodeName(parentId) & "」の子として" & vbCrLf & _
+          "「" & NodeName(childId) & "」（" & childId & "）を追加します。" & vbCrLf & vbCrLf
+    If cnt > 0 Then
+        msg = msg & "※ この項目は既に " & cnt & " 箇所にあります。" & vbCrLf & _
+                    "   " & cnt + 1 & " 箇所目のポインターを置きます（項目は増えません）。"
+    Else
+        msg = msg & "※ 項目は増えません。参照が 1 つ増えるだけです。"
+    End If
+    If MsgBox(msg, vbOKCancel + vbQuestion, "既存を子に追加") <> vbOK Then Exit Sub
 
     linkId = AddChildLink(parentId, childId)
     If Len(linkId) = 0 Then Exit Sub
@@ -242,15 +248,14 @@ Public Sub LinkExistingChild()
     PlaceHotspotForLink linkId
 End Sub
 
-Private Function IsAlreadyChild(ByVal parentId As String, ByVal childId As String) As Boolean
-    Dim wl As Worksheet, v As Variant
+' 親の下に、その子へのリンクが何本あるか（同じ子を複数箇所に置ける）
+Private Function ChildLinkCount(ByVal parentId As String, ByVal childId As String) As Long
+    Dim wl As Worksheet, v As Variant, n As Long
     Set wl = SheetOf(SH_LINK)
     For Each v In ChildLinkRows(parentId)
-        If StrComp(Trim$(CStr(wl.Cells(CLng(v), LC_CHILD).Value)), childId, vbTextCompare) = 0 Then
-            IsAlreadyChild = True
-            Exit Function
-        End If
+        If StrComp(Trim$(CStr(wl.Cells(CLng(v), LC_CHILD).Value)), childId, vbTextCompare) = 0 Then n = n + 1
     Next v
+    ChildLinkCount = n
 End Function
 
 Private Function CandidateLabel(ByVal nodeId As String) As String
