@@ -63,7 +63,8 @@ Public Sub DrawHotspots(ByVal ws As Worksheet, ByVal nodeId As String, ByVal pic
 
             StyleHotspot sh, HS_PREFIX & linkId, lbl, _
                          KindColor(NodeVal(childId, NC_KIND)), _
-                         NodeName(childId) & " (" & childId & ")"
+                         NodeName(childId) & " (" & childId & ")", _
+                         LinkAlpha(r)
             gDrawnLinks.Add linkId
         End If
     Next v
@@ -76,12 +77,17 @@ Private Function ShapeTypeOf(ByVal s As String) As Long
     End Select
 End Function
 
+' リンク行の塗りの薄さ。空欄なら［設定］の既定値
+Public Function LinkAlpha(ByVal linkRow As Long) As Double
+    LinkAlpha = Clamp(NumOf(SheetOf(SH_LINK).Cells(linkRow, LC_ALPHA), CfgNum("cfgHsAlpha", 0.85)), 0#, 0.95)
+End Function
+
 Private Sub StyleHotspot(ByVal sh As Shape, ByVal nm As String, ByVal lbl As String, _
-                         ByVal clr As Long, ByVal tip As String)
+                         ByVal clr As Long, ByVal tip As String, ByVal alpha As Double)
     sh.Name = nm
     sh.Placement = xlFreeFloating
     sh.Fill.ForeColor.RGB = clr
-    sh.Fill.Transparency = Clamp(CfgNum("cfgHsAlpha", 0.85), 0#, 0.95)
+    sh.Fill.Transparency = alpha
     sh.Line.ForeColor.RGB = clr
     sh.Line.Weight = 1.75
 
@@ -110,6 +116,78 @@ Private Sub StyleHotspot(ByVal sh As Shape, ByVal nm As String, ByVal lbl As Str
         sh.Line.DashStyle = msoLineSolid
         sh.OnAction = "HotspotClicked"
     End If
+End Sub
+
+'----------------------------------------------------------
+' 選択中のポインターの塗りの薄さを変える（ポインターごとに保存）
+'   編集モードでポインターをクリックして選び、［濃さを変更］を押す
+'   （閲覧モードでは Ctrl+クリックで選べる）
+'----------------------------------------------------------
+Public Sub SetHotspotAlpha()
+    Dim wl As Worksheet, sel As Object, sh As Shape, picked As Collection
+    Dim linkId As String, r As Long, s As String, v As Double, cur As Double
+
+    Set wl = SheetOf(SH_LINK)
+    Set picked = New Collection
+
+    On Error Resume Next
+    Set sel = Selection
+    On Error GoTo 0
+    If Not sel Is Nothing Then
+        If TypeName(sel) = "ShapeRange" Then
+            For Each sh In sel
+                If Left$(sh.Name, Len(HS_PREFIX)) = HS_PREFIX Then picked.Add sh
+            Next sh
+        ElseIf TypeName(sel) <> "Range" Then
+            ' 図形を 1 つだけ選ぶと Rectangle / Oval などが返るので名前から引き直す
+            On Error Resume Next
+            Set sh = SheetOf(SH_VIEW).Shapes(sel.Name)
+            On Error GoTo 0
+            If Not sh Is Nothing Then
+                If Left$(sh.Name, Len(HS_PREFIX)) = HS_PREFIX Then picked.Add sh
+            End If
+        End If
+    End If
+
+    If picked.Count = 0 Then
+        MsgBox "濃さを変えるポインターを先に選んでください。" & vbCrLf & vbCrLf & _
+               "・［編集モード］にしてポインターをクリック（Shift+クリックで複数）" & vbCrLf & _
+               "・閲覧モードなら Ctrl+クリックで選べます" & vbCrLf & vbCrLf & _
+               "全部まとめて変えるときは［設定］シートの「ポインターの塗りの薄さ」を変えてください。", _
+               vbInformation, "濃さを変更"
+        Exit Sub
+    End If
+
+    ' 1 つ目の現在値を初期値にする
+    r = FindLinkRow(Mid$(picked(1).Name, Len(HS_PREFIX) + 1))
+    If r > 0 Then cur = LinkAlpha(r) Else cur = CfgNum("cfgHsAlpha", 0.85)
+
+    s = InputBox("塗りの薄さを 0〜1 で入力してください（" & picked.Count & " 個に適用）。" & vbCrLf & _
+                 "0 = ベタ塗り、0.9 = ほぼ透明。空欄にすると［設定］の既定値に戻ります。", _
+                 "濃さを変更", Format$(cur, "0.00"))
+    If StrPtr(s) = 0 Then Exit Sub          ' キャンセル
+    s = Trim$(s)
+    If Len(s) > 0 Then
+        If Not IsNumeric(s) Then
+            MsgBox "0〜1 の数値を入力してください。", vbExclamation, "濃さを変更"
+            Exit Sub
+        End If
+        v = Clamp(CDbl(s), 0#, 0.95)
+    End If
+
+    For Each sh In picked
+        linkId = Mid$(sh.Name, Len(HS_PREFIX) + 1)
+        r = FindLinkRow(linkId)
+        If r > 0 Then
+            If Len(s) = 0 Then
+                wl.Cells(r, LC_ALPHA).ClearContents
+            Else
+                wl.Cells(r, LC_ALPHA).Value = Round(v, 2)
+            End If
+            sh.Fill.Transparency = LinkAlpha(r)
+        End If
+    Next sh
+    Application.StatusBar = "ポインター " & picked.Count & " 個の濃さを変更しました  (" & Format$(Now, "hh:mm:ss") & ")"
 End Sub
 
 '----------------------------------------------------------
