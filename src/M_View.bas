@@ -7,16 +7,17 @@ Option Explicit
 
 Public Const IMG_SHAPE  As String = "NODE_IMAGE"
 Public Const PH_SHAPE   As String = "NODE_PLACEHOLDER"
-Public Const FRAME_ADDR As String = "B5:M28"
+Public Const FRAME_ADDR As String = "B5:Q36"   ' 画像枠（16列×32行 = 3:2）
+Public Const MODE_ADDR  As String = "S1"       ' モード表示（右パネルの上）
 
 ' 右パネルの位置
-Public Const LBL_COL = 15      ' O列 : 見出し
-Public Const VAL_COL = 16      ' P列 : 値（P:Q 結合）
+Public Const LBL_COL = 19      ' S列 : 見出し
+Public Const VAL_COL = 20      ' T列 : 値（T:U 結合）
 Public Const CH_HDR_ROW = 21   ' 子一覧の見出し行
 Public Const CH_TOP_ROW = 22   ' 子一覧の先頭行
 Public Const CH_MAX = 40       ' 子一覧の最大表示件数
-Public Const HID_NODE_COL = 19 ' S列 : 子のノードID（非表示）
-Public Const HID_LINK_COL = 20 ' T列 : リンクID（非表示）
+Public Const HID_NODE_COL = 23 ' W列 : 子のノードID（非表示）
+Public Const HID_LINK_COL = 24 ' X列 : リンクID（非表示）
 
 ' 情報欄の行
 Public Const IR_ID = 6, IR_KIND = 7, IR_NAME = 8, IR_MODEL = 9, IR_MAKER = 10

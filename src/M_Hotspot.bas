@@ -310,14 +310,14 @@ Public Sub UpdateModeIndicator()
 
     If ThisWorkbook.ReadOnly Then
         ' 共有フォルダで他の人が先に開いているとき。閲覧・検索は全部できる
-        ws.Range("O1").Value = "読み取り専用（閲覧のみ。登録や位置の保存は残りません）"
-        ws.Range("O1").Font.Color = RGB(200, 90, 0)
+        ws.Range(MODE_ADDR).Value = "読み取り専用（閲覧のみ。登録や位置の保存は残りません）"
+        ws.Range(MODE_ADDR).Font.Color = RGB(200, 90, 0)
     ElseIf isEdit Then
-        ws.Range("O1").Value = "★編集モード：ポインターをドラッグ →［位置を保存］"
-        ws.Range("O1").Font.Color = RGB(200, 0, 0)
+        ws.Range(MODE_ADDR).Value = "★編集モード：ポインターをドラッグ →［位置を保存］"
+        ws.Range(MODE_ADDR).Font.Color = RGB(200, 0, 0)
     Else
-        ws.Range("O1").Value = "閲覧モード：ポインターのクリックで移動"
-        ws.Range("O1").Font.Color = RGB(100, 100, 100)
+        ws.Range(MODE_ADDR).Value = "閲覧モード：ポインターのクリックで移動"
+        ws.Range(MODE_ADDR).Font.Color = RGB(100, 100, 100)
     End If
 
     On Error Resume Next
