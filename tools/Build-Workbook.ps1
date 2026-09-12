@@ -43,6 +43,8 @@ $xlSrcRange = 1; $xlYes = 1
 $msoRoundRect = 5; $xlFreeFloating = 3
 $xlOpenXMLWorkbookMacroEnabled = 52
 $FONT = 'Meiryo UI'
+$LOCK_PW = 'edit'                    # 編集者モードの初期合言葉（［設定］シートで変えられる）
+$xlSheetVeryHidden = 2
 
 function RGBv([int]$r, [int]$g, [int]$b) { $r + $g * 256 + $b * 65536 }
 
@@ -153,27 +155,30 @@ try {
         @(8,  'ポインター既定サイズ 縦(0-1)',   0.06,      ''),
         @(9,  'ポインターの塗りの薄さ(0-1)',    0.85,      '既定値。大きいほど薄い。0=ベタ塗り、0.9=ほぼ透明。個別に変えるには［濃さを変更］か［リンク］の「塗りの薄さ」'),
         @(10, 'ポインターの文字サイズ(pt)',     11,        '既定値。個別に変えるには［文字サイズを変更］か［リンク］の「文字サイズ」'),
-        @(11, '現在表示中のノードID',           'MAP-001', '（自動で更新されます）'),
-        @(12, '表示履歴',                       '',        '（自動で更新されます。［戻る］が使います）'),
-        @(13, '編集モード(1=ON)',               '0',       '（自動で更新されます）')
+        @(11, '編集者モードの合言葉',           $LOCK_PW,  '［編集者モード］ボタンで聞かれる合言葉。ここで変えられます'),
+        @(12, '現在表示中のノードID',           'MAP-001', '（自動で更新されます）'),
+        @(13, '表示履歴',                       '',        '（自動で更新されます。［戻る］が使います）'),
+        @(14, '編集モード(1=ON)',               '0',       '（自動で更新されます）'),
+        @(15, '編集者モード(1=ON)',             '0',       '（自動で更新されます）')
     )
     foreach ($c in $cfg) {
         Set-Cell $ws ([int]$c[0]) 1 $c[1]
         Set-Cell $ws ([int]$c[0]) 2 $c[2]
         Set-Cell $ws ([int]$c[0]) 3 $c[3]
     }
-    $ws.Range('A3:A13').Font.Bold = $true
-    $ws.Range('B3:B13').Interior.Color = (RGBv 255 251 230)
-    $ws.Range('B3:B13').Borders.LineStyle = $xlContinuous
-    $ws.Range('B3:B13').Borders.Color = $CLR_FRAME
-    $ws.Range('C3:C13').Font.Color = $CLR_MUTED
-    $ws.Range('A15').Value2 = '※ 灰色の説明どおりに使ってください。B11〜B13 はツールが自動で書き換えます。'
-    $ws.Range('A15').Font.Color = $CLR_MUTED
+    $ws.Range('A3:A15').Font.Bold = $true
+    $ws.Range('B3:B15').Interior.Color = (RGBv 255 251 230)
+    $ws.Range('B3:B15').Borders.LineStyle = $xlContinuous
+    $ws.Range('B3:B15').Borders.Color = $CLR_FRAME
+    $ws.Range('C3:C15').Font.Color = $CLR_MUTED
+    $ws.Range('A17').Value2 = '※ 灰色の説明どおりに使ってください。B12〜B15 はツールが自動で書き換えます。'
+    $ws.Range('A17').Font.Color = $CLR_MUTED
 
     $names = @{
         'cfgRoot' = '$B$3'; 'cfgImgDir' = '$B$4'; 'cfgPdfDir' = '$B$5'; 'cfgHome' = '$B$6'
         'cfgHsW' = '$B$7'; 'cfgHsH' = '$B$8'; 'cfgHsAlpha' = '$B$9'; 'cfgHsFont' = '$B$10'
-        'cfgCurrent' = '$B$11'; 'cfgHistory' = '$B$12'; 'cfgEdit' = '$B$13'
+        'cfgLockPw' = '$B$11'
+        'cfgCurrent' = '$B$12'; 'cfgHistory' = '$B$13'; 'cfgEdit' = '$B$14'; 'cfgEditor' = '$B$15'
     }
     foreach ($k in $names.Keys) { $wb.Names.Add($k, "=設定!$($names[$k])") | Out-Null }
 
@@ -344,7 +349,8 @@ try {
         @('BTN_BACK',   '← 戻る',           'GoBack',              70),
         @('BTN_HOME',   'ホーム',            'GoHome',              70),
         @('BTN_PDF',    '原本を開く',        'OpenOriginal',        100),
-        @('BTN_PARTS',  '棚番検索',          'GoPartsSheet',        90)
+        @('BTN_PARTS',  '棚番検索',          'GoPartsSheet',        90),
+        @('BTN_LOGIN',  '編集者モード：OFF', 'ToggleEditorMode',    130)
     )
     $x = $left
     foreach ($t in $b) {
@@ -356,7 +362,8 @@ try {
         @('BTN_ADD',    'ポインター追加',    'AddHotspot',           110),
         @('BTN_SAVE',   '位置を保存',        'SaveHotspotsAndRefresh', 100),
         @('BTN_NEW',    '子として新規登録',  'GoRegisterFromView',   140),
-        @('BTN_LINK',   '既存を子に追加',    'LinkExistingChild',    134)
+        @('BTN_LINK',   '既存を子に追加',    'LinkExistingChild',    134),
+        @('BTN_SAVEWB', '保存 (Ctrl+S)',     'SaveLocked',           100)
     )
     $x = $left
     foreach ($t in $b2) {
@@ -511,7 +518,7 @@ try {
         $comp.CodeModule.AddFromString($code)
     }
 
-    foreach ($m in @('M_Data', 'M_View', 'M_Hotspot', 'M_Parts', 'M_Register')) {
+    foreach ($m in @('M_Data', 'M_View', 'M_Hotspot', 'M_Parts', 'M_Register', 'M_Lock')) {
         $c = $vbp.VBComponents.Add(1)      # vbext_ct_StdModule
         $c.Name = $m
         Set-Code $c (Join-Path $Src "$m.bas")
@@ -536,6 +543,14 @@ try {
     } catch { }
     $wb.Sheets.Item('ビュー').Activate()
     try { $wb.Sheets.Item('ビュー').Range('B3').Select() | Out-Null } catch { }
+
+    # 閲覧者モードの状態で保存する（台帳シートを隠し、構成を保護し、編集ボタンを消す）
+    #   ※ src\M_Lock.bas の LockWorkbook と同じ内容
+    foreach ($n in @('ノード', 'リンク', '登録', '設定')) { $wb.Sheets.Item($n).Visible = $xlSheetVeryHidden }
+    foreach ($n in @('BTN_EDIT', 'BTN_ADD', 'BTN_SAVE', 'BTN_SAVEWB', 'BTN_NEW', 'BTN_LINK', 'BTN_ALPHA', 'BTN_LABEL', 'BTN_COLOR', 'BTN_FONT')) {
+        $wb.Sheets.Item('ビュー').Shapes.Item($n).Visible = 0
+    }
+    $wb.Protect($LOCK_PW, $true, $false)
 
     $wb.SaveAs($Out, $xlOpenXMLWorkbookMacroEnabled)
     $wb.Close($false)

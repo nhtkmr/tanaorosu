@@ -40,11 +40,11 @@ Excel の設定を 1 か所だけ変えます。**PowerShell から VBA を書�
 .\tools\Build-Workbook.ps1       # 予備品図面管理.xlsm ができる（40 秒ほど）
 ```
 
-必要なのは次の 9 ファイルだけです。**これさえあれば同じブックが再現できます。**
+必要なのは次の 10 ファイルだけです。**これさえあれば同じブックが再現できます。**
 
 ```
 tools\Build-Workbook.ps1
-src\M_Data.bas  M_View.bas  M_Hotspot.bas  M_Parts.bas  M_Register.bas
+src\M_Data.bas  M_View.bas  M_Hotspot.bas  M_Parts.bas  M_Register.bas  M_Lock.bas
 src\ThisWorkbook.cls  Sheet_View.cls  Sheet_Parts.cls
 ```
 
@@ -78,6 +78,7 @@ src\*.bas / *.cls  ─┐
 | `M_Hotspot.bas` | ポインターの描画・クリック・追加・保存、編集モード |
 | `M_Parts.bas` | 部品一覧の生成と検索 |
 | `M_Register.bas` | 新規登録、既存を子に追加、リンク行の作成 |
+| `M_Lock.bas` | 閲覧者／編集者モード（台帳シートの表示・非表示、構成の保護、合言葉） |
 | `ThisWorkbook.cls` | 開いたとき／保存前後／閉じるときの処理 |
 | `Sheet_View.cls` | ビューのクリック処理（子一覧・使用先） |
 | `Sheet_Parts.cls` | 部品一覧のクリック・検索・再生成 |

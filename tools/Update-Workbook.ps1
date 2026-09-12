@@ -36,7 +36,7 @@ Write-Host '今のブックから台帳を読み出しています...'
 $xl = New-Excel
 $nodes = @(); $links = @(); $cfg = @{}
 # 設定は行番号ではなく定義名でやりとりする（設定シートの行が増減しても壊れない）
-$CfgKeys = @('cfgRoot', 'cfgImgDir', 'cfgPdfDir', 'cfgHome', 'cfgHsW', 'cfgHsH', 'cfgHsAlpha', 'cfgHsFont')
+$CfgKeys = @('cfgRoot', 'cfgImgDir', 'cfgPdfDir', 'cfgHome', 'cfgHsW', 'cfgHsH', 'cfgHsAlpha', 'cfgHsFont', 'cfgLockPw')
 try {
     $wb = $xl.Workbooks.Open($Out)
     foreach ($t in @(@('ノード', 'tblNode'), @('リンク', 'tblLink'))) {
@@ -77,6 +77,10 @@ Write-Host '台帳を書き戻しています...'
 $xl = New-Excel
 try {
     $wb = $xl.Workbooks.Open($Out)
+    # 作り直したブックは初期の合言葉で構成が保護されている。書き戻す間だけ外す
+    $pw = 'edit'
+    if ($null -ne $cfg['cfgLockPw'] -and "$($cfg['cfgLockPw'])" -ne '') { $pw = [string]$cfg['cfgLockPw'] }
+    $wb.Unprotect('edit')
 
     function Write-Table($ws, $lo, $rows) {
         $first = $lo.HeaderRowRange.Row + 1
@@ -104,7 +108,7 @@ try {
     Write-Table $wb.Sheets.Item('ノード') $wb.Sheets.Item('ノード').ListObjects.Item('tblNode') $nodes
     Write-Table $wb.Sheets.Item('リンク') $wb.Sheets.Item('リンク').ListObjects.Item('tblLink') $links
 
-    # 設定は運用値（ルート・フォルダ名・ホーム・既定サイズ・塗りの薄さ・文字サイズ）だけ戻す
+    # 設定は運用値（ルート・フォルダ名・ホーム・既定サイズ・塗りの薄さ・文字サイズ・合言葉）だけ戻す
     foreach ($k in $CfgKeys) {
         $v = $cfg[$k]
         if ($null -ne $v -and "$v" -ne '') {
@@ -117,7 +121,10 @@ try {
     $wb.Names.Item('cfgCurrent').RefersToRange.Value2 = [string]$wb.Names.Item('cfgHome').RefersToRange.Value2
     $wb.Names.Item('cfgHistory').RefersToRange.ClearContents() | Out-Null
     $wb.Names.Item('cfgEdit').RefersToRange.Value2 = '0'
+    $wb.Names.Item('cfgEditor').RefersToRange.Value2 = '0'
 
+    # 閲覧者モードの状態（運用中の合言葉で保護）に戻して保存
+    $wb.Protect($pw, $true, $false)
     $wb.Save()
     $wb.Close($false)
     Write-Host ("書き戻しました: ノード {0} 行 / リンク {1} 行" -f $nodes.Count, $links.Count) -ForegroundColor Green
