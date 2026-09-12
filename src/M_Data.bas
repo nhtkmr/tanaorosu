@@ -24,7 +24,8 @@ Public Const LC_ID = 1, LC_PARENT = 2, LC_CHILD = 3, LC_LABEL = 4
 Public Const LC_X = 5, LC_Y = 6, LC_W = 7, LC_H = 8
 Public Const LC_SHAPE = 9, LC_QTY = 10, LC_NOTE = 11
 Public Const LC_ALPHA = 12     ' 塗りの薄さ 0〜1（空欄 = 設定の既定値）
-Public Const LC_LAST = 12
+Public Const LC_COLOR = 13     ' 文字色 RRGGBB（空欄 = 種別の色）
+Public Const LC_LAST = 13
 
 #If VBA7 Then
     Public Declare PtrSafe Function ShellExecuteA Lib "shell32.dll" ( _

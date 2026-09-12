@@ -64,7 +64,7 @@ Public Sub DrawHotspots(ByVal ws As Worksheet, ByVal nodeId As String, ByVal pic
             StyleHotspot sh, HS_PREFIX & linkId, lbl, _
                          KindColor(NodeVal(childId, NC_KIND)), _
                          NodeName(childId) & " (" & childId & ")", _
-                         LinkAlpha(r)
+                         LinkAlpha(r), LinkTextColor(r)
             gDrawnLinks.Add linkId
         End If
     Next v
@@ -82,8 +82,46 @@ Public Function LinkAlpha(ByVal linkRow As Long) As Double
     LinkAlpha = Clamp(NumOf(SheetOf(SH_LINK).Cells(linkRow, LC_ALPHA), CfgNum("cfgHsAlpha", 0.85)), 0#, 0.95)
 End Function
 
+' リンク行の文字色。空欄や読めない値なら種別の色を暗くしたもの
+Public Function LinkTextColor(ByVal linkRow As Long) As Long
+    Dim wl As Worksheet, clr As Long
+    Set wl = SheetOf(SH_LINK)
+    If ParseColor(CStr(wl.Cells(linkRow, LC_COLOR).Value), clr) Then
+        LinkTextColor = clr
+    Else
+        LinkTextColor = Darken(KindColor(NodeVal(CStr(wl.Cells(linkRow, LC_CHILD).Value), NC_KIND)), 0.7)
+    End If
+End Function
+
+' "FF0000" / "#FF0000" / 色名（黒 白 赤 青 緑 黄 橙）を RGB 値にする
+Public Function ParseColor(ByVal s As String, ByRef clr As Long) As Boolean
+    s = UCase$(Trim$(s))
+    If Left$(s, 1) = "#" Then s = Mid$(s, 2)
+    Select Case s
+        Case "黒": clr = RGB(0, 0, 0)
+        Case "白": clr = RGB(255, 255, 255)
+        Case "赤": clr = RGB(220, 0, 0)
+        Case "青": clr = RGB(0, 70, 220)
+        Case "緑": clr = RGB(0, 140, 60)
+        Case "黄": clr = RGB(255, 220, 0)
+        Case "橙": clr = RGB(240, 130, 0)
+        Case Else
+            If Len(s) <> 6 Then Exit Function
+            If s Like "*[!0-9A-F]*" Then Exit Function
+            clr = RGB(CLng("&H" & Left$(s, 2)), CLng("&H" & Mid$(s, 3, 2)), CLng("&H" & Right$(s, 2)))
+    End Select
+    ParseColor = True
+End Function
+
+Public Function ColorToHex(ByVal clr As Long) As String
+    ColorToHex = Right$("0" & Hex$(clr And &HFF), 2) & _
+                 Right$("0" & Hex$((clr \ &H100&) And &HFF), 2) & _
+                 Right$("0" & Hex$((clr \ &H10000) And &HFF), 2)
+End Function
+
 Private Sub StyleHotspot(ByVal sh As Shape, ByVal nm As String, ByVal lbl As String, _
-                         ByVal clr As Long, ByVal tip As String, ByVal alpha As Double)
+                         ByVal clr As Long, ByVal tip As String, ByVal alpha As Double, _
+                         ByVal txtClr As Long)
     sh.Name = nm
     sh.Placement = xlFreeFloating
     sh.Fill.ForeColor.RGB = clr
@@ -99,7 +137,7 @@ Private Sub StyleHotspot(ByVal sh As Shape, ByVal nm As String, ByVal lbl As Str
             .Text = lbl
             .Font.Size = 11
             .Font.Bold = msoTrue
-            .Font.Fill.ForeColor.RGB = Darken(clr, 0.7)
+            .Font.Fill.ForeColor.RGB = txtClr
             .ParagraphFormat.Alignment = msoAlignCenter
         End With
     End With
@@ -124,30 +162,11 @@ End Sub
 '   （閲覧モードでは Ctrl+クリックで選べる）
 '----------------------------------------------------------
 Public Sub SetHotspotAlpha()
-    Dim wl As Worksheet, sel As Object, sh As Shape, picked As Collection
+    Dim wl As Worksheet, sh As Shape, picked As Collection
     Dim linkId As String, r As Long, s As String, v As Double, cur As Double
 
     Set wl = SheetOf(SH_LINK)
-    Set picked = New Collection
-
-    On Error Resume Next
-    Set sel = Selection
-    On Error GoTo 0
-    If Not sel Is Nothing Then
-        If TypeName(sel) = "ShapeRange" Then
-            For Each sh In sel
-                If Left$(sh.Name, Len(HS_PREFIX)) = HS_PREFIX Then picked.Add sh
-            Next sh
-        ElseIf TypeName(sel) <> "Range" Then
-            ' 図形を 1 つだけ選ぶと Rectangle / Oval などが返るので名前から引き直す
-            On Error Resume Next
-            Set sh = SheetOf(SH_VIEW).Shapes(sel.Name)
-            On Error GoTo 0
-            If Not sh Is Nothing Then
-                If Left$(sh.Name, Len(HS_PREFIX)) = HS_PREFIX Then picked.Add sh
-            End If
-        End If
-    End If
+    Set picked = PickedHotspots()
 
     If picked.Count = 0 Then
         MsgBox "濃さを変えるポインターを先に選んでください。" & vbCrLf & vbCrLf & _
@@ -189,6 +208,143 @@ Public Sub SetHotspotAlpha()
     Next sh
     Application.StatusBar = "ポインター " & picked.Count & " 個の濃さを変更しました  (" & Format$(Now, "hh:mm:ss") & ")"
 End Sub
+
+'----------------------------------------------------------
+' 選択中のポインターの表示文字を変える（ポインターごとに保存）
+'   通し番号の代わりに「A-1」「軸受」など好きな文字を出せる。
+'   空欄にすると通し番号に戻る。値は［リンク］シートの「ラベル」列に入る
+'----------------------------------------------------------
+Public Sub SetHotspotLabel()
+    Dim wl As Worksheet, sh As Shape, picked As Collection
+    Dim linkId As String, childId As String, r As Long, s As String, cur As String, n As Long
+
+    Set wl = SheetOf(SH_LINK)
+    Set picked = PickedHotspots()
+
+    If picked.Count = 0 Then
+        MsgBox "表示名を変えるポインターを先に選んでください。" & vbCrLf & vbCrLf & _
+               "・［編集モード］にしてポインターをクリック（Shift+クリックで複数）" & vbCrLf & _
+               "・閲覧モードなら Ctrl+クリックで選べます", _
+               vbInformation, "表示名を変更"
+        Exit Sub
+    End If
+
+    ' 複数選んだときは 1 つずつ順に聞く（キャンセルでそこで打ち切り）
+    For Each sh In picked
+        linkId = Mid$(sh.Name, Len(HS_PREFIX) + 1)
+        r = FindLinkRow(linkId)
+        If r > 0 Then
+            childId = Trim$(CStr(wl.Cells(r, LC_CHILD).Value))
+            cur = Trim$(CStr(wl.Cells(r, LC_LABEL).Value))
+            s = InputBox("「" & NodeName(childId) & "」のポインターに出す文字を入力してください。" & vbCrLf & _
+                         "空欄にすると通し番号に戻ります。" & vbCrLf & _
+                         "（" & n + 1 & " / " & picked.Count & " 個目）", _
+                         "表示名を変更", cur)
+            If StrPtr(s) = 0 Then Exit For          ' キャンセル
+            s = Trim$(s)
+            If Len(s) = 0 Then
+                wl.Cells(r, LC_LABEL).ClearContents
+            Else
+                ' "3" のような入力も数値にせず文字のまま入れる
+                wl.Cells(r, LC_LABEL).NumberFormat = "@"
+                wl.Cells(r, LC_LABEL).Value = s
+            End If
+            n = n + 1
+        End If
+    Next sh
+
+    If n = 0 Then Exit Sub
+    ' 右パネルの子一覧「No」にも同じ文字を出しているので、描き直して揃える
+    RefreshView
+    Application.StatusBar = "ポインター " & n & " 個の表示名を変更しました  (" & Format$(Now, "hh:mm:ss") & ")"
+End Sub
+
+'----------------------------------------------------------
+' 選択中のポインターの文字色を変える（ポインターごとに保存）
+'   Excel の「色の設定」ダイアログで選ぶ。既定に戻すと種別の色になる
+'----------------------------------------------------------
+Public Sub SetHotspotTextColor()
+    Dim wl As Worksheet, sh As Shape, picked As Collection
+    Dim linkId As String, r As Long, ans As VbMsgBoxResult, clr As Long, hx As String
+
+    Set wl = SheetOf(SH_LINK)
+    Set picked = PickedHotspots()
+
+    If picked.Count = 0 Then
+        MsgBox "文字色を変えるポインターを先に選んでください。" & vbCrLf & vbCrLf & _
+               "・［編集モード］にしてポインターをクリック（Shift+クリックで複数）" & vbCrLf & _
+               "・閲覧モードなら Ctrl+クリックで選べます", _
+               vbInformation, "文字色を変更"
+        Exit Sub
+    End If
+
+    ans = MsgBox("ポインター " & picked.Count & " 個の文字色を変えます。" & vbCrLf & vbCrLf & _
+                 "［はい］　色を選ぶ" & vbCrLf & _
+                 "［いいえ］既定（種別の色）に戻す", vbYesNoCancel + vbQuestion, "文字色を変更")
+    If ans = vbCancel Then Exit Sub
+
+    If ans = vbYes Then
+        r = FindLinkRow(Mid$(picked(1).Name, Len(HS_PREFIX) + 1))
+        If r > 0 Then clr = LinkTextColor(r) Else clr = RGB(0, 0, 0)
+        If Not PickColor(clr) Then Exit Sub
+        hx = ColorToHex(clr)
+    End If
+
+    For Each sh In picked
+        linkId = Mid$(sh.Name, Len(HS_PREFIX) + 1)
+        r = FindLinkRow(linkId)
+        If r > 0 Then
+            If ans = vbYes Then
+                wl.Cells(r, LC_COLOR).NumberFormat = "@"
+                wl.Cells(r, LC_COLOR).Value = hx
+            Else
+                wl.Cells(r, LC_COLOR).ClearContents
+            End If
+            sh.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = LinkTextColor(r)
+        End If
+    Next sh
+    Application.StatusBar = "ポインター " & picked.Count & " 個の文字色を変更しました  (" & Format$(Now, "hh:mm:ss") & ")"
+End Sub
+
+' Excel の「色の設定」ダイアログで色を選ぶ。OK なら clr に入れて True
+'   ダイアログはパレットの 1 色を書き換える方式なので、読み取ったら元に戻す
+Private Function PickColor(ByRef clr As Long) As Boolean
+    Const PAL_IDX As Long = 56
+    Dim saved As Long, ok As Boolean
+    saved = ThisWorkbook.Colors(PAL_IDX)
+    On Error Resume Next
+    ok = Application.Dialogs(xlDialogEditColor).Show(PAL_IDX, clr And &HFF, (clr \ &H100&) And &HFF, (clr \ &H10000) And &HFF)
+    On Error GoTo 0
+    If ok Then clr = ThisWorkbook.Colors(PAL_IDX)
+    ThisWorkbook.Colors(PAL_IDX) = saved
+    PickColor = ok
+End Function
+
+' いま選択されているポインター図形（HS_ で始まるもの）を集める
+Private Function PickedHotspots() As Collection
+    Dim sel As Object, sh As Shape, picked As Collection
+    Set picked = New Collection
+
+    On Error Resume Next
+    Set sel = Selection
+    On Error GoTo 0
+    If Not sel Is Nothing Then
+        If TypeName(sel) = "ShapeRange" Then
+            For Each sh In sel
+                If Left$(sh.Name, Len(HS_PREFIX)) = HS_PREFIX Then picked.Add sh
+            Next sh
+        ElseIf TypeName(sel) <> "Range" Then
+            ' 図形を 1 つだけ選ぶと Rectangle / Oval などが返るので名前から引き直す
+            On Error Resume Next
+            Set sh = SheetOf(SH_VIEW).Shapes(sel.Name)
+            On Error GoTo 0
+            If Not sh Is Nothing Then
+                If Left$(sh.Name, Len(HS_PREFIX)) = HS_PREFIX Then picked.Add sh
+            End If
+        End If
+    End If
+    Set PickedHotspots = picked
+End Function
 
 '----------------------------------------------------------
 ' クリック → 子へ移動
