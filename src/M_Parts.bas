@@ -39,7 +39,7 @@ Public Sub RebuildParts()
                 ws.Cells(out, 7).Value = wn.Cells(r, NC_PRICE).Value
                 ws.Cells(out, 8).Value = wn.Cells(r, NC_VENDOR).Value
                 ws.Cells(out, 9).Value = UsedIn(nodeId)
-                ws.Cells(out, 10).Value = "▶ 表示"
+                ws.Cells(out, 10).Value = "表示"
                 out = out + 1
             End If
         End If
@@ -77,7 +77,7 @@ Public Sub PartsShowAll()
     RebuildParts
 End Sub
 
-' 一覧の「▶ 表示」から該当ノードを開く
+' 一覧の「表示」から該当ノードを開く
 Public Sub PartsOpenRow(ByVal rowNum As Long)
     Dim ws As Worksheet, id As String
     Set ws = SheetOf(SH_PARTS)
