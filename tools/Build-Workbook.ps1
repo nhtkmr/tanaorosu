@@ -152,27 +152,28 @@ try {
         @(7,  'ポインター既定サイズ 横(0-1)',   0.08,      '新規ポインターの初期の大きさ'),
         @(8,  'ポインター既定サイズ 縦(0-1)',   0.06,      ''),
         @(9,  'ポインターの塗りの薄さ(0-1)',    0.85,      '既定値。大きいほど薄い。0=ベタ塗り、0.9=ほぼ透明。個別に変えるには［濃さを変更］か［リンク］の「塗りの薄さ」'),
-        @(10, '現在表示中のノードID',           'MAP-001', '（自動で更新されます）'),
-        @(11, '表示履歴',                       '',        '（自動で更新されます。［戻る］が使います）'),
-        @(12, '編集モード(1=ON)',               '0',       '（自動で更新されます）')
+        @(10, 'ポインターの文字サイズ(pt)',     11,        '既定値。個別に変えるには［文字サイズを変更］か［リンク］の「文字サイズ」'),
+        @(11, '現在表示中のノードID',           'MAP-001', '（自動で更新されます）'),
+        @(12, '表示履歴',                       '',        '（自動で更新されます。［戻る］が使います）'),
+        @(13, '編集モード(1=ON)',               '0',       '（自動で更新されます）')
     )
     foreach ($c in $cfg) {
         Set-Cell $ws ([int]$c[0]) 1 $c[1]
         Set-Cell $ws ([int]$c[0]) 2 $c[2]
         Set-Cell $ws ([int]$c[0]) 3 $c[3]
     }
-    $ws.Range('A3:A12').Font.Bold = $true
-    $ws.Range('B3:B12').Interior.Color = (RGBv 255 251 230)
-    $ws.Range('B3:B12').Borders.LineStyle = $xlContinuous
-    $ws.Range('B3:B12').Borders.Color = $CLR_FRAME
-    $ws.Range('C3:C12').Font.Color = $CLR_MUTED
-    $ws.Range('A14').Value2 = '※ 灰色の説明どおりに使ってください。B10〜B12 はツールが自動で書き換えます。'
-    $ws.Range('A14').Font.Color = $CLR_MUTED
+    $ws.Range('A3:A13').Font.Bold = $true
+    $ws.Range('B3:B13').Interior.Color = (RGBv 255 251 230)
+    $ws.Range('B3:B13').Borders.LineStyle = $xlContinuous
+    $ws.Range('B3:B13').Borders.Color = $CLR_FRAME
+    $ws.Range('C3:C13').Font.Color = $CLR_MUTED
+    $ws.Range('A15').Value2 = '※ 灰色の説明どおりに使ってください。B11〜B13 はツールが自動で書き換えます。'
+    $ws.Range('A15').Font.Color = $CLR_MUTED
 
     $names = @{
         'cfgRoot' = '$B$3'; 'cfgImgDir' = '$B$4'; 'cfgPdfDir' = '$B$5'; 'cfgHome' = '$B$6'
-        'cfgHsW' = '$B$7'; 'cfgHsH' = '$B$8'; 'cfgHsAlpha' = '$B$9'
-        'cfgCurrent' = '$B$10'; 'cfgHistory' = '$B$11'; 'cfgEdit' = '$B$12'
+        'cfgHsW' = '$B$7'; 'cfgHsH' = '$B$8'; 'cfgHsAlpha' = '$B$9'; 'cfgHsFont' = '$B$10'
+        'cfgCurrent' = '$B$11'; 'cfgHistory' = '$B$12'; 'cfgEdit' = '$B$13'
     }
     foreach ($k in $names.Keys) { $wb.Names.Add($k, "=設定!$($names[$k])") | Out-Null }
 
@@ -225,34 +226,35 @@ try {
     $ws = $wb.Sheets.Item('リンク')
     $ws.Cells.Font.Name = $FONT
     $ws.Cells.Font.Size = 10
-    $ws.Range('A1').Value2 = '親子関係とポインター位置 ── X/Y/W/H は画像に対する 0〜1 の割合。空欄なら「位置未設定」（子一覧にだけ出ます）。ラベルはポインターに出す文字（空欄なら通し番号）。塗りの薄さ・文字色は空欄なら既定（文字色は RRGGBB か 黒/白/赤/青/緑/黄/橙）。'
+    $ws.Range('A1').Value2 = '親子関係とポインター位置 ── X/Y/W/H は画像に対する 0〜1 の割合。空欄なら「位置未設定」（子一覧にだけ出ます）。ラベルはポインターに出す文字（空欄なら通し番号）。塗りの薄さ・文字色・文字サイズは空欄なら既定（文字色は RRGGBB か 黒/白/赤/青/緑/黄/橙）。'
     $ws.Range('A1').Font.Bold = $true
 
-    $lhdr = @('リンクID', '親ノードID', '子ノードID', 'ラベル', 'X', 'Y', 'W', 'H', '形状', '数量', '備考', '塗りの薄さ', '文字色')
+    $lhdr = @('リンクID', '親ノードID', '子ノードID', 'ラベル', 'X', 'Y', 'W', 'H', '形状', '数量', '備考', '塗りの薄さ', '文字色', '文字サイズ')
     for ($j = 0; $j -lt $lhdr.Count; $j++) { Set-Cell $ws 2 ($j + 1) $lhdr[$j] }
 
     $links = @(
-        @('L0001', 'MAP-001', 'EQ-001',  '1', 0.12, 0.30, 0.18, 0.22, '四角', 1, '', '', ''),
-        @('L0002', 'MAP-001', 'EQ-002',  '2', 0.55, 0.55, 0.22, 0.18, '四角', 1, '', '', ''),
-        @('L0003', 'EQ-001',  'DT-001',  '1', 0.60, 0.35, 0.18, 0.22, '四角', 1, '', '', ''),
-        @('L0004', 'DT-001',  'AS-001',  '1', 0.30, 0.30, 0.30, 0.30, '四角', 1, '', '', ''),
-        @('L0005', 'AS-001',  'PT-001',  '1', 0.18, 0.28, 0.06, 0.09, '丸',   2, '', '', ''),
-        @('L0006', 'AS-001',  'PT-002',  '2', 0.46, 0.55, 0.06, 0.09, '丸',   4, '', '', ''),
-        @('L0007', 'AS-001',  'DW-001',  '3', 0.70, 0.30, 0.06, 0.09, '丸',   1, '', '', '')
+        @('L0001', 'MAP-001', 'EQ-001',  '1', 0.12, 0.30, 0.18, 0.22, '四角', 1, '', '', '', ''),
+        @('L0002', 'MAP-001', 'EQ-002',  '2', 0.55, 0.55, 0.22, 0.18, '四角', 1, '', '', '', ''),
+        @('L0003', 'EQ-001',  'DT-001',  '1', 0.60, 0.35, 0.18, 0.22, '四角', 1, '', '', '', ''),
+        @('L0004', 'DT-001',  'AS-001',  '1', 0.30, 0.30, 0.30, 0.30, '四角', 1, '', '', '', ''),
+        @('L0005', 'AS-001',  'PT-001',  '1', 0.18, 0.28, 0.06, 0.09, '丸',   2, '', '', '', ''),
+        @('L0006', 'AS-001',  'PT-002',  '2', 0.46, 0.55, 0.06, 0.09, '丸',   4, '', '', '', ''),
+        @('L0007', 'AS-001',  'DW-001',  '3', 0.70, 0.30, 0.06, 0.09, '丸',   1, '', '', '', '')
     )
     for ($i = 0; $i -lt $links.Count; $i++) {
         for ($j = 0; $j -lt $lhdr.Count; $j++) { Set-Cell $ws (3 + $i) ($j + 1) $links[$i][$j] }
     }
 
-    $lo = $ws.ListObjects.Add($xlSrcRange, $ws.Range('A2:M' + (2 + $links.Count)), $null, $xlYes)
+    $lo = $ws.ListObjects.Add($xlSrcRange, $ws.Range('A2:N' + (2 + $links.Count)), $null, $xlYes)
     $lo.Name = 'tblLink'
     $lo.TableStyle = 'TableStyleLight10'
 
-    $w = @(10, 13, 13, 9, 9, 9, 9, 9, 8, 7, 24, 11, 9)
+    $w = @(10, 13, 13, 9, 9, 9, 9, 9, 8, 7, 24, 11, 9, 11)
     for ($j = 0; $j -lt $w.Count; $j++) { $ws.Columns.Item($j + 1).ColumnWidth = $w[$j] }
     $ws.Range('E3:H500').NumberFormat = '0.0000'
     $ws.Range('L3:L500').NumberFormat = '0.00'
     $ws.Range('M3:M500').NumberFormat = '@'
+    $ws.Range('N3:N500').NumberFormat = '0'
     $ws.Rows.Item(2).RowHeight = 20
 
     $v = $ws.Range('I3:I500').Validation
@@ -279,7 +281,7 @@ try {
     $ws.Rows.Item(1).RowHeight = 22
     $ws.Rows.Item(2).RowHeight = 26
     $ws.Rows.Item(3).RowHeight = 26
-    $ws.Rows.Item(4).RowHeight = 6
+    $ws.Rows.Item(4).RowHeight = 26
     $ws.Range('5:60').RowHeight = 18
 
     # パンくず／モード表示
@@ -335,6 +337,7 @@ try {
     # ボタン
     $top1 = $ws.Range('B2').Top + 2
     $top2 = $ws.Range('B3').Top + 2
+    $top3 = $ws.Range('B4').Top + 2
     $left = $ws.Range('B2').Left
     $btnH = 22
     $b = @(
@@ -352,15 +355,24 @@ try {
         @('BTN_EDIT',   '編集モード：OFF',   'ToggleEditMode',       120),
         @('BTN_ADD',    'ポインター追加',    'AddHotspot',           110),
         @('BTN_SAVE',   '位置を保存',        'SaveHotspotsAndRefresh', 100),
-        @('BTN_ALPHA',  '濃さを変更',        'SetHotspotAlpha',      100),
-        @('BTN_LABEL',  '表示名を変更',      'SetHotspotLabel',      100),
-        @('BTN_COLOR',  '文字色を変更',      'SetHotspotTextColor',  100),
         @('BTN_NEW',    '子として新規登録',  'GoRegisterFromView',   140),
         @('BTN_LINK',   '既存を子に追加',    'LinkExistingChild',    134)
     )
     $x = $left
     foreach ($t in $b2) {
         Add-Button $ws $t[0] $t[1] $t[2] $x $top2 $t[3] $btnH | Out-Null
+        $x += $t[3] + 6
+    }
+    # 3 段目: 選んだポインターの見た目を変える
+    $b3 = @(
+        @('BTN_ALPHA',  '濃さを変更',        'SetHotspotAlpha',      100),
+        @('BTN_LABEL',  '表示名を変更',      'SetHotspotLabel',      100),
+        @('BTN_COLOR',  '文字色を変更',      'SetHotspotTextColor',  100),
+        @('BTN_FONT',   '文字サイズを変更',  'SetHotspotFontSize',   120)
+    )
+    $x = $left
+    foreach ($t in $b3) {
+        Add-Button $ws $t[0] $t[1] $t[2] $x $top3 $t[3] $btnH | Out-Null
         $x += $t[3] + 6
     }
 

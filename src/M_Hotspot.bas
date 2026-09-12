@@ -64,7 +64,7 @@ Public Sub DrawHotspots(ByVal ws As Worksheet, ByVal nodeId As String, ByVal pic
             StyleHotspot sh, HS_PREFIX & linkId, lbl, _
                          KindColor(NodeVal(childId, NC_KIND)), _
                          NodeName(childId) & " (" & childId & ")", _
-                         LinkAlpha(r), LinkTextColor(r)
+                         LinkAlpha(r), LinkTextColor(r), LinkFontSize(r)
             gDrawnLinks.Add linkId
         End If
     Next v
@@ -80,6 +80,11 @@ End Function
 ' リンク行の塗りの薄さ。空欄なら［設定］の既定値
 Public Function LinkAlpha(ByVal linkRow As Long) As Double
     LinkAlpha = Clamp(NumOf(SheetOf(SH_LINK).Cells(linkRow, LC_ALPHA), CfgNum("cfgHsAlpha", 0.85)), 0#, 0.95)
+End Function
+
+' リンク行の文字サイズ(pt)。空欄なら［設定］の既定値
+Public Function LinkFontSize(ByVal linkRow As Long) As Double
+    LinkFontSize = Clamp(NumOf(SheetOf(SH_LINK).Cells(linkRow, LC_SIZE), CfgNum("cfgHsFont", 11)), 6, 72)
 End Function
 
 ' リンク行の文字色。空欄や読めない値なら種別の色を暗くしたもの
@@ -121,7 +126,7 @@ End Function
 
 Private Sub StyleHotspot(ByVal sh As Shape, ByVal nm As String, ByVal lbl As String, _
                          ByVal clr As Long, ByVal tip As String, ByVal alpha As Double, _
-                         ByVal txtClr As Long)
+                         ByVal txtClr As Long, ByVal fontSize As Double)
     sh.Name = nm
     sh.Placement = xlFreeFloating
     sh.Fill.ForeColor.RGB = clr
@@ -135,7 +140,7 @@ Private Sub StyleHotspot(ByVal sh As Shape, ByVal nm As String, ByVal lbl As Str
         .WordWrap = msoFalse
         With .TextRange
             .Text = lbl
-            .Font.Size = 11
+            .Font.Size = fontSize
             .Font.Bold = msoTrue
             .Font.Fill.ForeColor.RGB = txtClr
             .ParagraphFormat.Alignment = msoAlignCenter
@@ -304,6 +309,57 @@ Public Sub SetHotspotTextColor()
         End If
     Next sh
     Application.StatusBar = "ポインター " & picked.Count & " 個の文字色を変更しました  (" & Format$(Now, "hh:mm:ss") & ")"
+End Sub
+
+'----------------------------------------------------------
+' 選択中のポインターの文字サイズを変える（ポインターごとに保存）
+'----------------------------------------------------------
+Public Sub SetHotspotFontSize()
+    Dim wl As Worksheet, sh As Shape, picked As Collection
+    Dim linkId As String, r As Long, s As String, v As Double, cur As Double
+
+    Set wl = SheetOf(SH_LINK)
+    Set picked = PickedHotspots()
+
+    If picked.Count = 0 Then
+        MsgBox "文字サイズを変えるポインターを先に選んでください。" & vbCrLf & vbCrLf & _
+               "・［編集モード］にしてポインターをクリック（Shift+クリックで複数）" & vbCrLf & _
+               "・閲覧モードなら Ctrl+クリックで選べます" & vbCrLf & vbCrLf & _
+               "全部まとめて変えるときは［設定］シートの「ポインターの文字サイズ」を変えてください。", _
+               vbInformation, "文字サイズを変更"
+        Exit Sub
+    End If
+
+    ' 1 つ目の現在値を初期値にする
+    r = FindLinkRow(Mid$(picked(1).Name, Len(HS_PREFIX) + 1))
+    If r > 0 Then cur = LinkFontSize(r) Else cur = CfgNum("cfgHsFont", 11)
+
+    s = InputBox("文字サイズをポイントで入力してください（" & picked.Count & " 個に適用）。" & vbCrLf & _
+                 "6〜72。空欄にすると［設定］の既定値に戻ります。", _
+                 "文字サイズを変更", Format$(cur, "0.#"))
+    If StrPtr(s) = 0 Then Exit Sub          ' キャンセル
+    s = Trim$(s)
+    If Len(s) > 0 Then
+        If Not IsNumeric(s) Then
+            MsgBox "6〜72 の数値を入力してください。", vbExclamation, "文字サイズを変更"
+            Exit Sub
+        End If
+        v = Clamp(CDbl(s), 6, 72)
+    End If
+
+    For Each sh In picked
+        linkId = Mid$(sh.Name, Len(HS_PREFIX) + 1)
+        r = FindLinkRow(linkId)
+        If r > 0 Then
+            If Len(s) = 0 Then
+                wl.Cells(r, LC_SIZE).ClearContents
+            Else
+                wl.Cells(r, LC_SIZE).Value = Round(v, 1)
+            End If
+            sh.TextFrame2.TextRange.Font.Size = LinkFontSize(r)
+        End If
+    Next sh
+    Application.StatusBar = "ポインター " & picked.Count & " 個の文字サイズを変更しました  (" & Format$(Now, "hh:mm:ss") & ")"
 End Sub
 
 ' Excel の「色の設定」ダイアログで色を選ぶ。OK なら clr に入れて True

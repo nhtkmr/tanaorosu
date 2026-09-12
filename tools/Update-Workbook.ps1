@@ -36,7 +36,7 @@ Write-Host '今のブックから台帳を読み出しています...'
 $xl = New-Excel
 $nodes = @(); $links = @(); $cfg = @{}
 # 設定は行番号ではなく定義名でやりとりする（設定シートの行が増減しても壊れない）
-$CfgKeys = @('cfgRoot', 'cfgImgDir', 'cfgPdfDir', 'cfgHome', 'cfgHsW', 'cfgHsH', 'cfgHsAlpha')
+$CfgKeys = @('cfgRoot', 'cfgImgDir', 'cfgPdfDir', 'cfgHome', 'cfgHsW', 'cfgHsH', 'cfgHsAlpha', 'cfgHsFont')
 try {
     $wb = $xl.Workbooks.Open($Out)
     foreach ($t in @(@('ノード', 'tblNode'), @('リンク', 'tblLink'))) {
@@ -104,7 +104,7 @@ try {
     Write-Table $wb.Sheets.Item('ノード') $wb.Sheets.Item('ノード').ListObjects.Item('tblNode') $nodes
     Write-Table $wb.Sheets.Item('リンク') $wb.Sheets.Item('リンク').ListObjects.Item('tblLink') $links
 
-    # 設定は運用値（ルート・フォルダ名・ホーム・既定サイズ・塗りの薄さ）だけ戻す
+    # 設定は運用値（ルート・フォルダ名・ホーム・既定サイズ・塗りの薄さ・文字サイズ）だけ戻す
     foreach ($k in $CfgKeys) {
         $v = $cfg[$k]
         if ($null -ne $v -and "$v" -ne '') {
