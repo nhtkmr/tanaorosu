@@ -274,15 +274,15 @@ try {
     $ws.Cells.Font.Name = $FONT
     $ws.Cells.Font.Size = 10
     $ws.Columns.Item('A').ColumnWidth = 1.5
-    # 画像枠 B5:T47（19列×43行）。列幅 9.5 × 行高 18（実測 1154×774pt ≒ 1.49:1）
+    # 画像枠 B5:S45（18列×41行）。列幅 9.5 × 行高 18（約 1093×738pt ≒ 1.48:1）
     #   ※ 枠の番地を変えるときは src\M_View.bas の FRAME_ADDR / LBL_COL 等も合わせること
-    for ($c = 2; $c -le 20; $c++) { $ws.Columns.Item($c).ColumnWidth = 9.5 }
-    $ws.Columns.Item('U').ColumnWidth = 1.2
-    $ws.Columns.Item('V').ColumnWidth = 13
-    $ws.Columns.Item('W').ColumnWidth = 15
-    $ws.Columns.Item('X').ColumnWidth = 13
-    $ws.Columns.Item('Y').ColumnWidth = 1.2
-    $ws.Columns.Item('Z:AA').Hidden = $true
+    for ($c = 2; $c -le 19; $c++) { $ws.Columns.Item($c).ColumnWidth = 9.5 }
+    $ws.Columns.Item('T').ColumnWidth = 1.2
+    $ws.Columns.Item('U').ColumnWidth = 13
+    $ws.Columns.Item('V').ColumnWidth = 15
+    $ws.Columns.Item('W').ColumnWidth = 13
+    $ws.Columns.Item('X').ColumnWidth = 1.2
+    $ws.Columns.Item('Y:Z').Hidden = $true
     $ws.Rows.Item(1).RowHeight = 22
     $ws.Rows.Item(2).RowHeight = 26
     $ws.Rows.Item(3).RowHeight = 26
@@ -290,54 +290,54 @@ try {
     $ws.Range('5:60').RowHeight = 18
 
     # パンくず／モード表示
-    $ws.Range('B1:T1').Merge()
+    $ws.Range('B1:S1').Merge()
     $ws.Range('B1').Font.Size = 12
     $ws.Range('B1').Font.Bold = $true
     $ws.Range('B1').VerticalAlignment = $xlVCenter
-    $ws.Range('V1:X1').Merge()
-    $ws.Range('V1').Font.Size = 9
-    $ws.Range('V1').Font.Color = $CLR_MUTED
-    $ws.Range('V1').VerticalAlignment = $xlVCenter
-    $ws.Range('V1').HorizontalAlignment = $xlRight
+    $ws.Range('U1:W1').Merge()
+    $ws.Range('U1').Font.Size = 9
+    $ws.Range('U1').Font.Color = $CLR_MUTED
+    $ws.Range('U1').VerticalAlignment = $xlVCenter
+    $ws.Range('U1').HorizontalAlignment = $xlRight
 
     # 画像枠
-    $fr = $ws.Range('B5:T47')
+    $fr = $ws.Range('B5:S45')
     $fr.Interior.Color = (RGBv 252 252 250)
     $fr.BorderAround($xlContinuous, $xlThin, [Type]::Missing, $CLR_FRAME) | Out-Null
 
-    # 右パネル（V:X 列）
-    Set-Header $ws 'V5:X5' '■ この項目'
+    # 右パネル（U:W 列）
+    Set-Header $ws 'U5:W5' '■ この項目'
     $labels = @('ノードID', '種別', '名称', '型式・品番', 'メーカー', '棚番', '在庫数',
                 '単価', '購入先', '備考', '表示用画像', '原本ファイル', '使用先（親）')
     for ($i = 0; $i -lt $labels.Count; $i++) {
         $r = 6 + $i
-        $ws.Cells.Item($r, 22).Value2 = $labels[$i]
-        $ws.Cells.Item($r, 22).Font.Color = $CLR_MUTED
-        $ws.Range("W$r`:X$r").Merge()
-        $ws.Range("W$r").HorizontalAlignment = $xlLeft
+        $ws.Cells.Item($r, 21).Value2 = $labels[$i]
+        $ws.Cells.Item($r, 21).Font.Color = $CLR_MUTED
+        $ws.Range("V$r`:W$r").Merge()
+        $ws.Range("V$r").HorizontalAlignment = $xlLeft
     }
-    $ws.Range('V6:X18').Interior.Color = $CLR_PANEL
-    $ws.Range('V6:X18').Borders.LineStyle = $xlContinuous
-    $ws.Range('V6:X18').Borders.Color = (RGBv 220 220 216)
+    $ws.Range('U6:W18').Interior.Color = $CLR_PANEL
+    $ws.Range('U6:W18').Borders.LineStyle = $xlContinuous
+    $ws.Range('U6:W18').Borders.Color = (RGBv 220 220 216)
     # 棚番を目立たせる
-    $ws.Range('V11:X11').Interior.Color = (RGBv 255 244 244)
-    $ws.Range('W11').Font.Bold = $true
-    $ws.Range('W11').Font.Size = 12
-    $ws.Range('W11').Font.Color = (RGBv 200 30 40)
-    $ws.Range('W16:X17').Font.Size = 8
-    $ws.Range('W16:X17').Font.Color = $CLR_MUTED
+    $ws.Range('U11:W11').Interior.Color = (RGBv 255 244 244)
+    $ws.Range('V11').Font.Bold = $true
+    $ws.Range('V11').Font.Size = 12
+    $ws.Range('V11').Font.Color = (RGBv 200 30 40)
+    $ws.Range('V16:W17').Font.Size = 8
+    $ws.Range('V16:W17').Font.Color = $CLR_MUTED
 
-    Set-Header $ws 'V20:X20' '■ 子（クリックで移動）' $CLR_HEAD2
-    $ws.Cells.Item(21, 22).Value2 = 'No'
-    $ws.Cells.Item(21, 23).Value2 = '名称（クリックで移動）'
-    $ws.Cells.Item(21, 24).Value2 = '種別・棚番'
-    $ws.Range('V21:X21').Font.Bold = $true
-    $ws.Range('V21:X21').Font.Color = $CLR_MUTED
-    $ws.Range('V21:X21').Borders.Item(9).LineStyle = $xlContinuous   # xlEdgeBottom
-    $ws.Range('V22:V60').HorizontalAlignment = $xlCenter
-    $ws.Range('V22:V60').Font.Bold = $true
-    $ws.Range('X22:X60').Font.Size = 9
-    $ws.Range('X22:X60').Font.Color = $CLR_MUTED
+    Set-Header $ws 'U20:W20' '■ 子（クリックで移動）' $CLR_HEAD2
+    $ws.Cells.Item(21, 21).Value2 = 'No'
+    $ws.Cells.Item(21, 22).Value2 = '名称（クリックで移動）'
+    $ws.Cells.Item(21, 23).Value2 = '種別・棚番'
+    $ws.Range('U21:W21').Font.Bold = $true
+    $ws.Range('U21:W21').Font.Color = $CLR_MUTED
+    $ws.Range('U21:W21').Borders.Item(9).LineStyle = $xlContinuous   # xlEdgeBottom
+    $ws.Range('U22:U60').HorizontalAlignment = $xlCenter
+    $ws.Range('U22:U60').Font.Bold = $true
+    $ws.Range('W22:W60').Font.Size = 9
+    $ws.Range('W22:W60').Font.Color = $CLR_MUTED
 
     # ボタン
     $top1 = $ws.Range('B2').Top + 2
